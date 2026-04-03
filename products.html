@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2c3e50">
+  <title>نظام إدارة المخزن - المنتجات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="products">
+  <section class="auth-shell" id="authShell">
+    <div class="auth-card">
+      <span class="eyebrow">دخول آمن</span>
+      <h2>تسجيل الدخول</h2>
+      <p class="auth-copy">سجل الدخول للانتقال إلى صفحة المنتجات والصلاحيات المناسبة.</p>
+      <div class="auth-form">
+        <label>
+          <span>اسم المستخدم</span>
+          <input id="loginUsername" type="text" placeholder="مثال: owner أو worker">
+        </label>
+        <label>
+          <span>كلمة المرور</span>
+          <input id="loginPassword" type="password" placeholder="أدخل كلمة المرور">
+        </label>
+        <button type="button" class="primary-btn" id="loginBtn">دخول</button>
+      </div>
+      <p class="auth-error" id="loginError"></p>
+    </div>
+  </section>
+
+  <div class="app-shell is-hidden" id="appShell">
+    <header class="topbar">
+      <div>
+        <span class="eyebrow">نظام المخزن</span>
+        <h1 class="topbar__title">إدارة المنتجات</h1>
+      </div>
+      <div class="topbar__actions">
+        <div class="session-badge">
+          <span id="sessionRole">غير مسجل</span>
+          <button type="button" class="ghost-btn" id="logoutBtn">تسجيل خروج</button>
+        </div>
+        <button type="button" class="ghost-btn install-btn is-hidden" id="installBtn">تثبيت التطبيق</button>
+        <button type="button" class="ghost-btn" id="darkModeBtn">الوضع الليلي</button>
+      </div>
+    </header>
+
+    <nav class="main-nav">
+      <a href="index.html" data-nav="dashboard">الرئيسية</a>
+      <a href="products.html" data-nav="products">المنتجات</a>
+      <a href="reports.html" data-nav="reports">التقارير</a>
+    </nav>
+
+    <main class="page-shell">
+      <section class="hero">
+        <div class="hero__content">
+          <span class="eyebrow">إدارة يومية</span>
+          <h2>أضف وعدّل وتابع حركة المنتجات</h2>
+          <p>استخدم الوارد والصادر وتحديث الكميات لحظيًا مع حفظ كل الحركات في السجل.</p>
+        </div>
+        <div class="hero__actions">
+          <button type="button" class="ghost-btn" id="exportBtn">تصدير Excel</button>
+          <button type="button" class="ghost-btn" id="printBtn">طباعة</button>
+          <button type="button" class="ghost-btn" id="showBuyBtn">عرض سعر الشراء</button>
+          <button type="button" class="ghost-btn" id="hideBuyBtn">إخفاء سعر الشراء</button>
+          <button type="button" class="ghost-btn" id="showProfitBtn">عرض الربح</button>
+          <button type="button" class="ghost-btn" id="hideProfitBtn">إخفاء الربح</button>
+        </div>
+      </section>
+
+      <main class="content-grid">
+        <section class="panel form-panel" id="formPanel">
+          <div class="panel__header">
+            <h2>إضافة منتج</h2>
+            <p>هذه اللوحة متاحة لصاحب العمل فقط.</p>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>اسم المنتج</span>
+              <input id="name" type="text" placeholder="مثال: سماعة بلوتوث">
+            </label>
+            <label>
+              <span>الكمية</span>
+              <input id="qty" type="number" min="0" placeholder="0">
+            </label>
+            <label>
+              <span>سعر الشراء</span>
+              <input id="buy" type="number" min="0" step="0.01" placeholder="0.00">
+            </label>
+            <label>
+              <span>سعر البيع</span>
+              <input id="sellPrice" type="number" min="0" step="0.01" placeholder="0.00">
+            </label>
+          </div>
+
+          <button type="button" class="primary-btn" id="addProductBtn">إضافة المنتج</button>
+          <div class="summary" id="summary">لا توجد بيانات بعد.</div>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="panel__header panel__header--inline">
+            <div>
+              <h2>المنتجات</h2>
+              <p>جدول كامل لإدارة الأصناف والكميات.</p>
+            </div>
+            <input id="search" class="search-input" type="search" placeholder="ابحث باسم المنتج...">
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </main>
+  </div>
+
+  <button id="floatingAdd" class="floating" type="button" aria-label="إضافة منتج">+</button>
+
+  <div class="toast-stack" id="toastStack"></div>
+
+  <div class="modal-backdrop is-hidden" id="editModal">
+    <div class="modal-card">
+      <div class="panel__header">
+        <h2>تعديل المنتج</h2>
+        <p>حدّث البيانات ثم احفظ التغييرات.</p>
+      </div>
+      <div class="form-grid">
+        <label>
+          <span>اسم المنتج</span>
+          <input id="modalName" type="text">
+        </label>
+        <label>
+          <span>الكمية</span>
+          <input id="modalQty" type="number" min="0">
+        </label>
+        <label>
+          <span>سعر الشراء</span>
+          <input id="modalBuy" type="number" min="0" step="0.01">
+        </label>
+        <label>
+          <span>سعر البيع</span>
+          <input id="modalSell" type="number" min="0" step="0.01">
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="ghost-btn" id="cancelEditBtn">إلغاء</button>
+        <button type="button" class="primary-btn modal-save" id="saveEditBtn">حفظ التعديل</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop is-hidden" id="confirmModal">
+    <div class="modal-card">
+      <div class="panel__header">
+        <h2>تأكيد الحذف</h2>
+        <p id="confirmMessage">هل أنت متأكد من تنفيذ هذا الإجراء؟</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="ghost-btn" id="cancelConfirmBtn">إلغاء</button>
+        <button type="button" class="primary-btn modal-save danger-fill" id="confirmActionBtn">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

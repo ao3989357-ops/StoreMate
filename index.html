@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2c3e50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>نظام إدارة المخزن - الرئيسية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="dashboard">
+  <section class="auth-shell" id="authShell">
+    <div class="auth-card">
+      <span class="eyebrow">دخول آمن</span>
+      <h2>تسجيل الدخول</h2>
+      <p class="auth-copy">سجل الدخول كصاحب عمل أو كعامل للوصول إلى نظام المخزن حسب صلاحياتك.</p>
+
+      <div class="auth-form">
+        <label>
+          <span>اسم المستخدم</span>
+          <input id="loginUsername" type="text" placeholder="مثال: owner أو worker">
+        </label>
+        <label>
+          <span>كلمة المرور</span>
+          <input id="loginPassword" type="password" placeholder="أدخل كلمة المرور">
+        </label>
+        <button type="button" class="primary-btn" id="loginBtn">دخول</button>
+      </div>
+
+      <div class="auth-hint">
+        <strong>الحسابات الحالية:</strong>
+        <span>صاحب العمل: <code>owner</code></span>
+        <span>العامل: <code>worker</code></span>
+      </div>
+
+      <p class="auth-error" id="loginError"></p>
+    </div>
+  </section>
+
+  <div class="app-shell is-hidden" id="appShell">
+    <header class="topbar">
+      <div>
+        <span class="eyebrow">نظام المخزن</span>
+        <h1 class="topbar__title">لوحة الرئيسية</h1>
+      </div>
+
+      <div class="topbar__actions">
+        <div class="session-badge">
+          <span id="sessionRole">غير مسجل</span>
+          <button type="button" class="ghost-btn" id="logoutBtn">تسجيل خروج</button>
+        </div>
+        <button type="button" class="ghost-btn install-btn is-hidden" id="installBtn">تثبيت التطبيق</button>
+        <button type="button" class="ghost-btn" id="darkModeBtn">الوضع الليلي</button>
+      </div>
+    </header>
+
+    <nav class="main-nav">
+      <a href="index.html" data-nav="dashboard">الرئيسية</a>
+      <a href="products.html" data-nav="products">المنتجات</a>
+      <a href="reports.html" data-nav="reports">التقارير</a>
+    </nav>
+
+    <main class="page-shell">
+      <section class="hero">
+        <div class="hero__content">
+          <span class="eyebrow">ملخص سريع</span>
+          <h2>تابع المخزن من نظرة واحدة</h2>
+          <p>بطاقات سريعة للإجماليات المهمة، مع تحديث تلقائي حسب المنتجات المخزنة.</p>
+        </div>
+      <div class="hero__actions">
+          <button type="button" class="ghost-btn" id="printBtn">طباعة</button>
+          <button type="button" class="ghost-btn" id="exportBtn">تصدير Excel</button>
+          <button type="button" class="ghost-btn" id="showBuyBtn">عرض سعر الشراء</button>
+          <button type="button" class="ghost-btn" id="hideBuyBtn">إخفاء سعر الشراء</button>
+          <button type="button" class="ghost-btn" id="showProfitBtn">عرض الربح</button>
+          <button type="button" class="ghost-btn" id="hideProfitBtn">إخفاء الربح</button>
+        </div>
+      </section>
+
+      <section class="dashboard" id="dashboardCards">
+        <article class="card accent">
+          <span class="card__label">إجمالي القطع</span>
+          <strong class="card__value" id="totalProducts">0</strong>
+        </article>
+        <article class="card">
+          <span class="card__label">عدد الأصناف</span>
+          <strong class="card__value" id="totalItems">0</strong>
+        </article>
+        <article class="card" id="profitCard">
+          <span class="card__label">إجمالي الأرباح</span>
+          <strong class="card__value" id="totalProfit">مخفي</strong>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel__header">
+          <h2>ملخص اليوم</h2>
+          <p id="summary">لا توجد بيانات بعد.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

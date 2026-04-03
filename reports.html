@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2c3e50">
+  <title>نظام إدارة المخزن - التقارير</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="reports">
+  <section class="auth-shell" id="authShell">
+    <div class="auth-card">
+      <span class="eyebrow">دخول آمن</span>
+      <h2>تسجيل الدخول</h2>
+      <p class="auth-copy">سجل الدخول لمراجعة التقارير وسجل العمليات.</p>
+      <div class="auth-form">
+        <label>
+          <span>اسم المستخدم</span>
+          <input id="loginUsername" type="text" placeholder="مثال: owner أو worker">
+        </label>
+        <label>
+          <span>كلمة المرور</span>
+          <input id="loginPassword" type="password" placeholder="أدخل كلمة المرور">
+        </label>
+        <button type="button" class="primary-btn" id="loginBtn">دخول</button>
+      </div>
+      <p class="auth-error" id="loginError"></p>
+    </div>
+  </section>
+
+  <div class="app-shell is-hidden" id="appShell">
+    <header class="topbar">
+      <div>
+        <span class="eyebrow">نظام المخزن</span>
+        <h1 class="topbar__title">التقارير وسجل العمليات</h1>
+      </div>
+      <div class="topbar__actions">
+        <div class="session-badge">
+          <span id="sessionRole">غير مسجل</span>
+          <button type="button" class="ghost-btn" id="logoutBtn">تسجيل خروج</button>
+        </div>
+        <button type="button" class="ghost-btn install-btn is-hidden" id="installBtn">تثبيت التطبيق</button>
+        <button type="button" class="ghost-btn" id="darkModeBtn">الوضع الليلي</button>
+      </div>
+    </header>
+
+    <nav class="main-nav">
+      <a href="index.html" data-nav="dashboard">الرئيسية</a>
+      <a href="products.html" data-nav="products">المنتجات</a>
+      <a href="reports.html" data-nav="reports">التقارير</a>
+    </nav>
+
+    <main class="page-shell">
+      <section class="hero">
+        <div class="hero__content">
+          <span class="eyebrow">تقارير ذكية</span>
+          <h2>راجع الحركات بالتفصيل</h2>
+          <p>فلترة حسب المنتج أو نوع العملية للوصول السريع لأي حركة داخل النظام.</p>
+        </div>
+        <div class="hero__actions">
+          <button type="button" class="ghost-btn" id="exportBtn">تصدير Excel</button>
+          <button type="button" class="ghost-btn" id="printBtn">طباعة</button>
+          <button type="button" class="ghost-btn" id="showProfitBtn">عرض الربح</button>
+          <button type="button" class="ghost-btn" id="hideProfitBtn">إخفاء الربح</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__header panel__header--inline">
+          <div>
+            <h2>الفلاتر</h2>
+            <p>استخدم الفلاتر للوصول للحركة المطلوبة بسرعة.</p>
+          </div>
+        </div>
+
+        <div class="filters-grid">
+          <label>
+            <span>اسم المنتج</span>
+            <input id="reportSearch" type="search" placeholder="ابحث باسم المنتج...">
+          </label>
+          <label>
+            <span>نوع العملية</span>
+            <select id="reportType">
+              <option value="">كل العمليات</option>
+              <option value="إضافة">إضافة</option>
+              <option value="وارد">وارد</option>
+              <option value="صادر">صادر</option>
+              <option value="تعديل">تعديل</option>
+              <option value="حذف">حذف</option>
+            </select>
+          </label>
+          <label>
+            <span>من تاريخ</span>
+            <input id="reportDateFrom" type="date">
+          </label>
+          <label>
+            <span>إلى تاريخ</span>
+            <input id="reportDateTo" type="date">
+          </label>
+        </div>
+      </section>
+
+      <section class="panel logs-panel">
+        <div class="panel__header">
+          <h2>سجل العمليات</h2>
+          <p id="reportsSummary">لا توجد عمليات حتى الآن.</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>النوع</th>
+                <th>المنتج</th>
+                <th>الكمية</th>
+                <th>التاريخ</th>
+                <th>المستخدم</th>
+              </tr>
+            </thead>
+            <tbody id="logsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
