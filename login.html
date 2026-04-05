@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2c3e50">
+  <title>نظام إدارة المخزن - تسجيل الدخول</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="login" class="login-page">
+  <main class="login-shell">
+    <section class="login-card">
+      <span class="eyebrow">دخول آمن</span>
+      <h1>تسجيل الدخول إلى المخزن</h1>
+      <p class="auth-copy">ادخل باسم المستخدم وكلمة المرور للوصول إلى الصفحات والصلاحيات المناسبة لك.</p>
+
+      <div class="auth-form">
+        <label>
+          <span>اسم المستخدم</span>
+          <input id="loginUsername" type="text" placeholder="مثال: admin أو user1" autocomplete="username">
+        </label>
+        <label>
+          <span>كلمة المرور</span>
+          <input id="loginPassword" type="password" placeholder="أدخل كلمة المرور" autocomplete="current-password">
+        </label>
+        <button type="button" class="primary-btn" id="loginBtn">دخول</button>
+      </div>
+
+      <div class="auth-hint">
+        <strong>الحسابات الحالية:</strong>
+        <span>المدير: <code>admin</code> / <code>1234</code></span>
+        <span>العامل: <code>user1</code> / <code>1111</code></span>
+      </div>
+
+      <p class="auth-error" id="loginError"></p>
+    </section>
+  </main>
+
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

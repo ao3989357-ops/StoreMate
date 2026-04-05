@@ -12,35 +12,19 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="products">
-  <section class="auth-shell" id="authShell">
-    <div class="auth-card">
-      <span class="eyebrow">دخول آمن</span>
-      <h2>تسجيل الدخول</h2>
-      <p class="auth-copy">سجل الدخول للانتقال إلى صفحة المنتجات والصلاحيات المناسبة.</p>
-      <div class="auth-form">
-        <label>
-          <span>اسم المستخدم</span>
-          <input id="loginUsername" type="text" placeholder="مثال: owner أو worker">
-        </label>
-        <label>
-          <span>كلمة المرور</span>
-          <input id="loginPassword" type="password" placeholder="أدخل كلمة المرور">
-        </label>
-        <button type="button" class="primary-btn" id="loginBtn">دخول</button>
-      </div>
-      <p class="auth-error" id="loginError"></p>
-    </div>
-  </section>
-
-  <div class="app-shell is-hidden" id="appShell">
+  <div class="app-shell" id="appShell">
     <header class="topbar">
       <div>
         <span class="eyebrow">نظام المخزن</span>
         <h1 class="topbar__title">إدارة المنتجات</h1>
       </div>
+
       <div class="topbar__actions">
         <div class="session-badge">
-          <span id="sessionRole">غير مسجل</span>
+          <div class="session-meta">
+            <span id="sessionUser">المستخدم: -</span>
+            <span id="sessionRole">الصلاحية: -</span>
+          </div>
           <button type="button" class="ghost-btn" id="logoutBtn">تسجيل خروج</button>
         </div>
         <button type="button" class="ghost-btn install-btn is-hidden" id="installBtn">تثبيت التطبيق</button>
@@ -59,7 +43,7 @@
         <div class="hero__content">
           <span class="eyebrow">إدارة يومية</span>
           <h2>أضف وعدّل وتابع حركة المنتجات</h2>
-          <p>استخدم الوارد والصادر وتحديث الكميات لحظيًا مع حفظ كل الحركات في السجل.</p>
+          <p>استخدم الوارد والصادر وتحديث الكميات لحظيًا مع حفظ كل العمليات باسم المستخدم داخل السجل.</p>
         </div>
         <div class="hero__actions">
           <button type="button" class="ghost-btn" id="exportBtn">تصدير Excel</button>
@@ -71,11 +55,11 @@
         </div>
       </section>
 
-      <main class="content-grid">
+      <div class="content-grid">
         <section class="panel form-panel" id="formPanel">
           <div class="panel__header">
             <h2>إضافة منتج</h2>
-            <p>هذه اللوحة متاحة لصاحب العمل فقط.</p>
+            <p>هذه اللوحة متاحة للمدير فقط.</p>
           </div>
 
           <div class="form-grid">
@@ -105,7 +89,7 @@
           <div class="panel__header panel__header--inline">
             <div>
               <h2>المنتجات</h2>
-              <p>جدول كامل لإدارة الأصناف والكميات.</p>
+              <p>جدول كامل لإدارة الأصناف والكميات مع ربط كل حركة باسم المستخدم.</p>
             </div>
             <input id="search" class="search-input" type="search" placeholder="ابحث باسم المنتج...">
           </div>
@@ -117,7 +101,7 @@
             </table>
           </div>
         </section>
-      </main>
+      </div>
     </main>
   </div>
 

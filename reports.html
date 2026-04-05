@@ -12,35 +12,19 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="reports">
-  <section class="auth-shell" id="authShell">
-    <div class="auth-card">
-      <span class="eyebrow">دخول آمن</span>
-      <h2>تسجيل الدخول</h2>
-      <p class="auth-copy">سجل الدخول لمراجعة التقارير وسجل العمليات.</p>
-      <div class="auth-form">
-        <label>
-          <span>اسم المستخدم</span>
-          <input id="loginUsername" type="text" placeholder="مثال: owner أو worker">
-        </label>
-        <label>
-          <span>كلمة المرور</span>
-          <input id="loginPassword" type="password" placeholder="أدخل كلمة المرور">
-        </label>
-        <button type="button" class="primary-btn" id="loginBtn">دخول</button>
-      </div>
-      <p class="auth-error" id="loginError"></p>
-    </div>
-  </section>
-
-  <div class="app-shell is-hidden" id="appShell">
+  <div class="app-shell" id="appShell">
     <header class="topbar">
       <div>
         <span class="eyebrow">نظام المخزن</span>
         <h1 class="topbar__title">التقارير وسجل العمليات</h1>
       </div>
+
       <div class="topbar__actions">
         <div class="session-badge">
-          <span id="sessionRole">غير مسجل</span>
+          <div class="session-meta">
+            <span id="sessionUser">المستخدم: -</span>
+            <span id="sessionRole">الصلاحية: -</span>
+          </div>
           <button type="button" class="ghost-btn" id="logoutBtn">تسجيل خروج</button>
         </div>
         <button type="button" class="ghost-btn install-btn is-hidden" id="installBtn">تثبيت التطبيق</button>
@@ -59,13 +43,11 @@
         <div class="hero__content">
           <span class="eyebrow">تقارير ذكية</span>
           <h2>راجع الحركات بالتفصيل</h2>
-          <p>فلترة حسب المنتج أو نوع العملية للوصول السريع لأي حركة داخل النظام.</p>
+          <p>فلترة حسب المنتج أو نوع العملية أو التاريخ للوصول السريع إلى أي حركة داخل النظام.</p>
         </div>
         <div class="hero__actions">
           <button type="button" class="ghost-btn" id="exportBtn">تصدير Excel</button>
           <button type="button" class="ghost-btn" id="printBtn">طباعة</button>
-          <button type="button" class="ghost-btn" id="showProfitBtn">عرض الربح</button>
-          <button type="button" class="ghost-btn" id="hideProfitBtn">إخفاء الربح</button>
         </div>
       </section>
 

@@ -14,35 +14,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="dashboard">
-  <section class="auth-shell" id="authShell">
-    <div class="auth-card">
-      <span class="eyebrow">دخول آمن</span>
-      <h2>تسجيل الدخول</h2>
-      <p class="auth-copy">سجل الدخول كصاحب عمل أو كعامل للوصول إلى نظام المخزن حسب صلاحياتك.</p>
-
-      <div class="auth-form">
-        <label>
-          <span>اسم المستخدم</span>
-          <input id="loginUsername" type="text" placeholder="مثال: owner أو worker">
-        </label>
-        <label>
-          <span>كلمة المرور</span>
-          <input id="loginPassword" type="password" placeholder="أدخل كلمة المرور">
-        </label>
-        <button type="button" class="primary-btn" id="loginBtn">دخول</button>
-      </div>
-
-      <div class="auth-hint">
-        <strong>الحسابات الحالية:</strong>
-        <span>صاحب العمل: <code>owner</code></span>
-        <span>العامل: <code>worker</code></span>
-      </div>
-
-      <p class="auth-error" id="loginError"></p>
-    </div>
-  </section>
-
-  <div class="app-shell is-hidden" id="appShell">
+  <div class="app-shell" id="appShell">
     <header class="topbar">
       <div>
         <span class="eyebrow">نظام المخزن</span>
@@ -51,7 +23,10 @@
 
       <div class="topbar__actions">
         <div class="session-badge">
-          <span id="sessionRole">غير مسجل</span>
+          <div class="session-meta">
+            <span id="sessionUser">المستخدم: -</span>
+            <span id="sessionRole">الصلاحية: -</span>
+          </div>
           <button type="button" class="ghost-btn" id="logoutBtn">تسجيل خروج</button>
         </div>
         <button type="button" class="ghost-btn install-btn is-hidden" id="installBtn">تثبيت التطبيق</button>
@@ -69,10 +44,10 @@
       <section class="hero">
         <div class="hero__content">
           <span class="eyebrow">ملخص سريع</span>
-          <h2>تابع المخزن من نظرة واحدة</h2>
-          <p>بطاقات سريعة للإجماليات المهمة، مع تحديث تلقائي حسب المنتجات المخزنة.</p>
+          <h2>تابع حركة المخزن من مكان واحد</h2>
+          <p>بطاقات سريعة للإجماليات المهمة مع تحديث تلقائي حسب المنتجات وسجل الحركة داخل النظام.</p>
         </div>
-      <div class="hero__actions">
+        <div class="hero__actions">
           <button type="button" class="ghost-btn" id="printBtn">طباعة</button>
           <button type="button" class="ghost-btn" id="exportBtn">تصدير Excel</button>
           <button type="button" class="ghost-btn" id="showBuyBtn">عرض سعر الشراء</button>

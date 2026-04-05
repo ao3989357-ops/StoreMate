@@ -1,38 +1,32 @@
-const USERS = {
-  owner: {
-    username: "owner",
-    password: "1234",
-    role: "owner",
-    label: "صاحب العمل"
-  },
-  worker: {
-    username: "worker",
-    password: "0000",
-    role: "worker",
-    label: "عامل"
-  }
-};
+const API_BASE_URL = "http://localhost:5000";
 
 const STORAGE_KEYS = {
   products: "products",
   logs: "logs",
   currentUser: "currentUser",
+  username: "username",
+  role: "role",
   theme: "theme",
   showProfit: "showProfit",
   showBuy: "showBuy"
+};
+
+const ROLE_LABELS = {
+  admin: "Admin",
+  employee: "Employee"
 };
 
 const page = document.body.dataset.page || "dashboard";
 const pathPage = window.location.pathname.split("/").pop() || "index.html";
 
 const elements = {
-  authShell: document.getElementById("authShell"),
   appShell: document.getElementById("appShell"),
   loginUsername: document.getElementById("loginUsername"),
   loginPassword: document.getElementById("loginPassword"),
   loginBtn: document.getElementById("loginBtn"),
   loginError: document.getElementById("loginError"),
   logoutBtn: document.getElementById("logoutBtn"),
+  sessionUser: document.getElementById("sessionUser"),
   sessionRole: document.getElementById("sessionRole"),
   installBtn: document.getElementById("installBtn"),
   exportBtn: document.getElementById("exportBtn"),
@@ -80,7 +74,7 @@ const elements = {
 
 let products = JSON.parse(localStorage.getItem(STORAGE_KEYS.products)) || [];
 let logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.logs)) || [];
-let currentUser = JSON.parse(localStorage.getItem(STORAGE_KEYS.currentUser)) || null;
+let currentUser = normalizeStoredUser(JSON.parse(localStorage.getItem(STORAGE_KEYS.currentUser)) || null);
 let showProfit = localStorage.getItem(STORAGE_KEYS.showProfit) === "true";
 let showBuy = localStorage.getItem(STORAGE_KEYS.showBuy) === "true";
 let deferredInstallPrompt = null;
@@ -89,9 +83,24 @@ let pendingDeleteIndex = null;
 
 products = products.map((product) => ({
   ...product,
+  qty: Number(product.qty) || 0,
+  buy: Number(product.buy) || 0,
+  sell: Number(product.sell) || 0,
   soldCount: Number(product.soldCount) || 0,
-  realizedProfit: Number(product.realizedProfit) || 0
+  realizedProfit: Number(product.realizedProfit) || 0,
+  addedBy: product.addedBy || product.user || "admin"
 }));
+
+logs = logs.map((log) => ({
+  ...log,
+  quantity: Number(log.quantity) || 0,
+  user: log.user || "admin",
+  role: log.role || "admin"
+}));
+
+if (currentUser) {
+  saveSession();
+}
 
 if (localStorage.getItem(STORAGE_KEYS.theme) === "dark") {
   document.body.classList.add("dark");
@@ -101,12 +110,38 @@ if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.
   document.body.classList.add("standalone");
 }
 
-function isOwner() {
-  return currentUser?.role === "owner";
+function normalizeStoredUser(user) {
+  if (!user) return null;
+
+  const role = user.role === "owner" ? "admin" : user.role === "worker" ? "employee" : user.role;
+  const username =
+    user.username === "owner" ? "admin" : user.username === "worker" ? "user1" : user.username;
+
+  return {
+    username,
+    role,
+    label: ROLE_LABELS[role] || user.label || "User"
+  };
 }
 
-function isWorker() {
-  return currentUser?.role === "worker";
+function isLoginPage() {
+  return getCurrentPageKey() === "login";
+}
+
+function isAdmin() {
+  return currentUser?.role === "admin";
+}
+
+function getCurrentPageKey() {
+  if (page) return page;
+  if (pathPage === "login.html") return "login";
+  if (pathPage === "products.html") return "products";
+  if (pathPage === "reports.html") return "reports";
+  return "dashboard";
+}
+
+function getDefaultPageForRole(role) {
+  return role === "admin" ? "index.html" : "products.html";
 }
 
 function saveProducts() {
@@ -120,8 +155,12 @@ function saveLogs() {
 function saveSession() {
   if (currentUser) {
     localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(currentUser));
+    localStorage.setItem(STORAGE_KEYS.username, currentUser.username);
+    localStorage.setItem(STORAGE_KEYS.role, currentUser.role);
   } else {
     localStorage.removeItem(STORAGE_KEYS.currentUser);
+    localStorage.removeItem(STORAGE_KEYS.username);
+    localStorage.removeItem(STORAGE_KEYS.role);
   }
 }
 
@@ -151,11 +190,43 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
-function getCurrentPageKey() {
-  if (page) return page;
-  if (pathPage === "products.html") return "products";
-  if (pathPage === "reports.html") return "reports";
-  return "dashboard";
+function showToast(message, type = "info") {
+  if (!elements.toastStack) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  elements.toastStack.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 2600);
+}
+
+function redirectTo(url) {
+  if (window.location.pathname.endsWith(url)) return;
+  window.location.href = url;
+}
+
+function enforceAuthorization() {
+  const current = getCurrentPageKey();
+
+  if (!currentUser && current !== "login") {
+    redirectTo("login.html");
+    return false;
+  }
+
+  if (currentUser && current === "login") {
+    redirectTo(getDefaultPageForRole(currentUser.role));
+    return false;
+  }
+
+  if (currentUser && currentUser.role === "employee" && current === "dashboard") {
+    redirectTo("products.html");
+    return false;
+  }
+
+  return true;
 }
 
 function activateNav() {
@@ -165,83 +236,53 @@ function activateNav() {
   });
 }
 
-function addLog(type, productName, quantity) {
-  if (!currentUser) {
-    return;
+function updateSessionUI() {
+  if (elements.sessionUser) {
+    elements.sessionUser.textContent = `المستخدم: ${currentUser?.username || "-"}`;
   }
 
-  logs.unshift({
-    type,
-    product: productName,
-    quantity,
-    date: formatDate(),
-    user: currentUser.label
-  });
-  logs = logs.slice(0, 300);
-  saveLogs();
-}
-
-function showToast(message, type = "info") {
-  if (!elements.toastStack) return;
-  const toast = document.createElement("div");
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-  elements.toastStack.appendChild(toast);
-  setTimeout(() => {
-    toast.remove();
-  }, 2600);
+  if (elements.sessionRole) {
+    elements.sessionRole.textContent = `الصلاحية: ${currentUser?.label || "-"}`;
+  }
 }
 
 function updateAccessUI() {
-  const loggedIn = Boolean(currentUser);
+  if (!currentUser) return;
 
-  if (elements.authShell) {
-    elements.authShell.classList.toggle("is-hidden", loggedIn);
-  }
-  if (elements.appShell) {
-    elements.appShell.classList.toggle("is-hidden", !loggedIn);
-  }
-
-  if (!loggedIn) {
-    return;
-  }
-
-  if (!isOwner()) {
+  if (!isAdmin()) {
     showProfit = false;
     showBuy = false;
     saveVisibility();
   }
 
-  if (elements.sessionRole) {
-    elements.sessionRole.textContent = `الدور: ${currentUser.label}`;
-  }
+  updateSessionUI();
 
   if (elements.exportBtn) {
-    elements.exportBtn.style.display = isOwner() ? "inline-flex" : "none";
+    elements.exportBtn.style.display = isAdmin() ? "inline-flex" : "none";
   }
   if (elements.showBuyBtn) {
-    elements.showBuyBtn.style.display = isOwner() && !showBuy ? "inline-flex" : "none";
+    elements.showBuyBtn.style.display = isAdmin() && !showBuy ? "inline-flex" : "none";
   }
   if (elements.hideBuyBtn) {
-    elements.hideBuyBtn.style.display = isOwner() && showBuy ? "inline-flex" : "none";
+    elements.hideBuyBtn.style.display = isAdmin() && showBuy ? "inline-flex" : "none";
   }
   if (elements.showProfitBtn) {
-    elements.showProfitBtn.style.display = isOwner() && !showProfit ? "inline-flex" : "none";
+    elements.showProfitBtn.style.display = isAdmin() && !showProfit ? "inline-flex" : "none";
   }
   if (elements.hideProfitBtn) {
-    elements.hideProfitBtn.style.display = isOwner() && showProfit ? "inline-flex" : "none";
+    elements.hideProfitBtn.style.display = isAdmin() && showProfit ? "inline-flex" : "none";
   }
   if (elements.profitCard) {
-    elements.profitCard.classList.toggle("is-hidden", !isOwner());
+    elements.profitCard.classList.toggle("is-hidden", !isAdmin());
   }
   if (elements.dashboardCards) {
-    elements.dashboardCards.classList.toggle("dashboard--compact", isWorker());
+    elements.dashboardCards.classList.toggle("dashboard--compact", !isAdmin());
   }
   if (elements.formPanel) {
-    elements.formPanel.classList.toggle("is-hidden", isWorker());
+    elements.formPanel.classList.toggle("is-hidden", !isAdmin());
   }
   if (elements.floatingAdd) {
-    elements.floatingAdd.classList.toggle("is-hidden", !isOwner() || getCurrentPageKey() !== "products");
+    elements.floatingAdd.classList.toggle("is-hidden", !isAdmin() || getCurrentPageKey() !== "products");
   }
   if (elements.installBtn) {
     elements.installBtn.classList.toggle(
@@ -251,40 +292,83 @@ function updateAccessUI() {
   }
 }
 
-function login() {
-  const username = elements.loginUsername?.value.trim().toLowerCase();
+function addLog(type, productName, quantity) {
+  if (!currentUser) return;
+
+  logs.unshift({
+    type,
+    product: productName,
+    quantity,
+    date: formatDate(),
+    user: currentUser.username,
+    role: currentUser.role
+  });
+
+  logs = logs.slice(0, 500);
+  saveLogs();
+}
+
+async function login() {
+  const username = elements.loginUsername?.value.trim();
   const password = elements.loginPassword?.value.trim();
-  const user = Object.values(USERS).find(
-    (item) => item.username === username && item.password === password
-  );
 
-  if (!user) {
+  if (!username || !password) {
     if (elements.loginError) {
-      elements.loginError.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة.";
+      elements.loginError.textContent = "أدخل اسم المستخدم وكلمة المرور.";
     }
+    showToast("أدخل اسم المستخدم وكلمة المرور.", "error");
     return;
   }
 
-  currentUser = {
-    username: user.username,
-    role: user.role,
-    label: user.label
-  };
-  saveSession();
-  if (elements.loginError) elements.loginError.textContent = "";
-  if (elements.loginPassword) elements.loginPassword.value = "";
-  showToast(`مرحبًا ${user.label}`, "success");
-  const current = getCurrentPageKey();
-  if (user.role === "worker" && current === "dashboard") {
-    window.location.href = "products.html";
-    return;
+  if (elements.loginBtn) {
+    elements.loginBtn.disabled = true;
+    elements.loginBtn.textContent = "جارٍ التحقق...";
   }
-  if (user.role === "owner" && current !== "dashboard") {
-    window.location.href = "index.html";
-    return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.success) {
+      const message = data.message || "بيانات غير صحيحة.";
+      if (elements.loginError) {
+        elements.loginError.textContent = message;
+      }
+      showToast(message, "error");
+      return;
+    }
+
+    currentUser = normalizeStoredUser({
+      username: data.username,
+      role: data.role,
+      label: ROLE_LABELS[data.role]
+    });
+
+    saveSession();
+
+    if (elements.loginError) elements.loginError.textContent = "";
+    if (elements.loginPassword) elements.loginPassword.value = "";
+
+    showToast(`مرحبًا ${currentUser.username}`, "success");
+    redirectTo(getDefaultPageForRole(currentUser.role));
+  } catch (error) {
+    if (elements.loginError) {
+      elements.loginError.textContent = "تعذر الاتصال بالسيرفر. تأكد من تشغيل الـ backend.";
+    }
+    showToast("تعذر الاتصال بالسيرفر. تأكد من تشغيل الـ backend.", "error");
+  } finally {
+    if (elements.loginBtn) {
+      elements.loginBtn.disabled = false;
+      elements.loginBtn.textContent = "دخول";
+    }
   }
-  updateAccessUI();
-  renderPage();
 }
 
 function logout() {
@@ -294,7 +378,7 @@ function logout() {
   saveSession();
   saveVisibility();
   showToast("تم تسجيل الخروج", "info");
-  updateAccessUI();
+  redirectTo("login.html");
 }
 
 function getFormValues() {
@@ -311,74 +395,82 @@ function clearForm() {
   if (elements.qty) elements.qty.value = "";
   if (elements.buy) elements.buy.value = "";
   if (elements.sell) elements.sell.value = "";
-  if (elements.name) elements.name.focus();
+  elements.name?.focus();
 }
 
 function addProduct() {
-  if (!isOwner()) {
-    showToast("إضافة المنتجات متاحة لصاحب العمل فقط.", "error");
+  if (!isAdmin()) {
+    showToast("إضافة المنتجات متاحة للمدير فقط.", "error");
     return;
   }
 
   const product = getFormValues();
-  if (!product.name || product.qty < 0 || product.buy < 0 || product.sell < 0) {
-    showToast("من فضلك أدخل بيانات صحيحة لكل الحقول.", "error");
+  if (!product.name || [product.qty, product.buy, product.sell].some(Number.isNaN)) {
+    showToast("أدخل بيانات صحيحة لكل الحقول.", "error");
     return;
   }
-  if ([product.qty, product.buy, product.sell].some((value) => Number.isNaN(value))) {
-    showToast("تأكد من كتابة الأرقام بشكل صحيح.", "error");
+
+  if (product.qty < 0 || product.buy < 0 || product.sell < 0) {
+    showToast("لا يمكن إدخال أرقام سالبة.", "error");
     return;
   }
 
   products.unshift({
     ...product,
     soldCount: 0,
-    realizedProfit: 0
+    realizedProfit: 0,
+    addedBy: currentUser.username
   });
+
   addLog("إضافة", product.name, product.qty);
   saveProducts();
   clearForm();
-  showToast("تمت إضافة المنتج بنجاح", "success");
+  showToast("تمت إضافة المنتج بنجاح.", "success");
   renderPage();
 }
 
 function addQty(index) {
   const product = products[index];
   if (!product) return;
+
   product.qty += 1;
   addLog("وارد", product.name, 1);
   saveProducts();
+  showToast("تم تسجيل حركة وارد.", "success");
   renderPage();
 }
 
 function sell(index) {
   const product = products[index];
   if (!product) return;
+
   if (product.qty <= 0) {
     showToast("الكمية الحالية صفر.", "error");
     return;
   }
+
   product.qty -= 1;
   product.soldCount += 1;
   product.realizedProfit += product.sell - product.buy;
   addLog("صادر", product.name, 1);
   saveProducts();
-  showToast("تم تسجيل حركة صادر", "success");
+  showToast("تم تسجيل حركة صادر.", "success");
   renderPage();
 }
 
 function deleteProduct(index) {
-  if (!isOwner()) {
-    showToast("الحذف متاح لصاحب العمل فقط.", "error");
+  if (!isAdmin()) {
+    showToast("الحذف متاح للمدير فقط.", "error");
     return;
   }
+
   const product = products[index];
-  if (!product) return;
-  if (!elements.confirmModal) {
-    return;
-  }
+  if (!product || !elements.confirmModal) return;
+
   pendingDeleteIndex = index;
-  elements.confirmMessage.textContent = `سيتم حذف المنتج "${product.name}" نهائيًا من القائمة.`;
+  if (elements.confirmMessage) {
+    elements.confirmMessage.textContent = `سيتم حذف المنتج "${product.name}" نهائيًا من القائمة.`;
+  }
   elements.confirmModal.classList.remove("is-hidden");
 }
 
@@ -388,75 +480,37 @@ function closeConfirmModal() {
 }
 
 function confirmDelete() {
-  if (pendingDeleteIndex === null) {
-    return;
-  }
+  if (pendingDeleteIndex === null) return;
+
   const product = products[pendingDeleteIndex];
   if (!product) {
     closeConfirmModal();
     return;
   }
+
   addLog("حذف", product.name, product.qty);
   products.splice(pendingDeleteIndex, 1);
   saveProducts();
   closeConfirmModal();
-  showToast("تم حذف المنتج", "success");
+  showToast("تم حذف المنتج.", "success");
   renderPage();
 }
 
 function editProduct(index) {
-  if (!isOwner()) {
-    showToast("التعديل متاح لصاحب العمل فقط.", "error");
+  if (!isAdmin()) {
+    showToast("التعديل متاح للمدير فقط.", "error");
     return;
   }
 
-  const current = products[index];
-  if (!current) return;
-  if (!elements.editModal) {
-    return;
-  }
+  const product = products[index];
+  if (!product || !elements.editModal) return;
+
   editingIndex = index;
-  elements.modalName.value = current.name;
-  elements.modalQty.value = current.qty;
-  elements.modalBuy.value = current.buy;
-  elements.modalSell.value = current.sell;
+  elements.modalName.value = product.name;
+  elements.modalQty.value = product.qty;
+  elements.modalBuy.value = product.buy;
+  elements.modalSell.value = product.sell;
   elements.editModal.classList.remove("is-hidden");
-}
-
-function showProfitInfo() {
-  if (!isOwner()) {
-    showToast("هذه الميزة متاحة لصاحب العمل فقط.", "error");
-    return;
-  }
-  showProfit = true;
-  saveVisibility();
-  showToast("تم إظهار الربح", "success");
-  renderPage();
-}
-
-function hideProfitInfo() {
-  showProfit = false;
-  saveVisibility();
-  showToast("تم إخفاء الربح", "info");
-  renderPage();
-}
-
-function showBuyInfo() {
-  if (!isOwner()) {
-    showToast("هذه الميزة متاحة لصاحب العمل فقط.", "error");
-    return;
-  }
-  showBuy = true;
-  saveVisibility();
-  showToast("تم إظهار سعر الشراء", "success");
-  renderPage();
-}
-
-function hideBuyInfo() {
-  showBuy = false;
-  saveVisibility();
-  showToast("تم إخفاء سعر الشراء", "info");
-  renderPage();
 }
 
 function closeEditModal() {
@@ -466,26 +520,25 @@ function closeEditModal() {
 
 function saveEditFromModal() {
   if (editingIndex === null) return;
+
   const current = products[editingIndex];
   if (!current) return;
 
   const updated = {
+    ...current,
     name: elements.modalName.value.trim(),
     qty: Number(elements.modalQty.value),
     buy: Number(elements.modalBuy.value),
-    sell: Number(elements.modalSell.value),
-    soldCount: current.soldCount,
-    realizedProfit: current.realizedProfit
+    sell: Number(elements.modalSell.value)
   };
 
-  if (
-    !updated.name ||
-    [updated.qty, updated.buy, updated.sell].some((value) => Number.isNaN(value)) ||
-    updated.qty < 0 ||
-    updated.buy < 0 ||
-    updated.sell < 0
-  ) {
+  if (!updated.name || [updated.qty, updated.buy, updated.sell].some(Number.isNaN)) {
     showToast("البيانات الجديدة غير صالحة.", "error");
+    return;
+  }
+
+  if (updated.qty < 0 || updated.buy < 0 || updated.sell < 0) {
+    showToast("لا يمكن إدخال أرقام سالبة.", "error");
     return;
   }
 
@@ -493,20 +546,55 @@ function saveEditFromModal() {
   addLog("تعديل", updated.name, updated.qty);
   saveProducts();
   closeEditModal();
-  showToast("تم حفظ التعديل", "success");
+  showToast("تم حفظ التعديل.", "success");
+  renderPage();
+}
+
+function showProfitInfo() {
+  if (!isAdmin()) {
+    showToast("هذه الميزة متاحة للمدير فقط.", "error");
+    return;
+  }
+
+  showProfit = true;
+  saveVisibility();
+  renderPage();
+}
+
+function hideProfitInfo() {
+  showProfit = false;
+  saveVisibility();
+  renderPage();
+}
+
+function showBuyInfo() {
+  if (!isAdmin()) {
+    showToast("هذه الميزة متاحة للمدير فقط.", "error");
+    return;
+  }
+
+  showBuy = true;
+  saveVisibility();
+  renderPage();
+}
+
+function hideBuyInfo() {
+  showBuy = false;
+  saveVisibility();
   renderPage();
 }
 
 function renderSummary() {
   if (!elements.summary) return;
+
   if (products.length === 0) {
     elements.summary.textContent = "ابدأ بإضافة أول منتج ليظهر الملخص هنا.";
     return;
   }
+
   const totalSold = products.reduce((sum, product) => sum + product.soldCount, 0);
   const lowStock = products.filter((product) => product.qty <= 3).length;
-  elements.summary.textContent =
-    `تم بيع ${totalSold} قطعة حتى الآن، ويوجد ${lowStock} منتج يحتاج متابعة للمخزون.`;
+  elements.summary.textContent = `تم بيع ${totalSold} قطعة حتى الآن، ويوجد ${lowStock} منتج يحتاج متابعة للمخزون.`;
 }
 
 function renderDashboardPage() {
@@ -521,8 +609,9 @@ function renderDashboardPage() {
     elements.totalItems.textContent = totalItems.toLocaleString("ar-EG");
   }
   if (elements.totalProfit) {
-    elements.totalProfit.textContent = isOwner() && showProfit ? formatMoney(totalProfit) : "مخفي";
+    elements.totalProfit.textContent = isAdmin() && showProfit ? formatMoney(totalProfit) : "مخفي";
   }
+
   renderSummary();
 }
 
@@ -530,25 +619,25 @@ function renderProductsPage() {
   if (!elements.tableHead || !elements.tableBody) return;
 
   const keyword = elements.search?.value.trim().toLowerCase() || "";
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(keyword)
-  );
+  const filteredProducts = products.filter((product) => product.name.toLowerCase().includes(keyword));
 
   elements.tableHead.innerHTML = `
     <tr>
       <th>ID</th>
       <th>المنتج</th>
       <th>الكمية</th>
-      ${isOwner() && showBuy ? "<th>سعر الشراء</th>" : ""}
-      <th>سعر البيع</th>
-      ${isOwner() && showProfit ? "<th>الربح</th>" : ""}
+      ${isAdmin() && showBuy ? "<th>سعر الشراء</th>" : ""}
+      ${isAdmin() ? "<th>سعر البيع</th>" : ""}
+      ${isAdmin() && showProfit ? "<th>الربح</th>" : ""}
+      <th>أضيف بواسطة</th>
       <th>الحالة</th>
       <th>إجراءات</th>
     </tr>
   `;
 
   if (filteredProducts.length === 0) {
-    const colSpan = 6 + (isOwner() && showBuy ? 1 : 0) + (isOwner() && showProfit ? 1 : 0);
+    const colSpan =
+      6 + (isAdmin() ? 1 : 0) + (isAdmin() && showBuy ? 1 : 0) + (isAdmin() && showProfit ? 1 : 0);
     elements.tableBody.innerHTML = `<tr><td colspan="${colSpan}">لا توجد منتجات لعرضها.</td></tr>`;
     renderSummary();
     return;
@@ -557,22 +646,23 @@ function renderProductsPage() {
   elements.tableBody.innerHTML = filteredProducts
     .map((product) => {
       const index = products.indexOf(product);
-      const stockLabel =
-        product.qty === 0 ? "نفد" : product.qty <= 3 ? "منخفض" : "متوفر";
+      const stockLabel = product.qty === 0 ? "نفد" : product.qty <= 3 ? "منخفض" : "متوفر";
+
       return `
         <tr>
           <td>${index + 1}</td>
           <td>${product.name}</td>
           <td>${product.qty}</td>
-          ${isOwner() && showBuy ? `<td>${formatMoney(product.buy)}</td>` : ""}
-          <td>${formatMoney(product.sell)}</td>
-          ${isOwner() && showProfit ? `<td>${formatMoney(product.realizedProfit)}</td>` : ""}
+          ${isAdmin() && showBuy ? `<td>${formatMoney(product.buy)}</td>` : ""}
+          ${isAdmin() ? `<td>${formatMoney(product.sell)}</td>` : ""}
+          ${isAdmin() && showProfit ? `<td>${formatMoney(product.realizedProfit)}</td>` : ""}
+          <td>${product.addedBy}</td>
           <td><span class="badge">${stockLabel}</span></td>
           <td class="actions-cell">
             <button class="icon-btn" data-action="addQty" data-index="${index}" title="وارد">+</button>
             <button class="icon-btn" data-action="sell" data-index="${index}" title="صادر">-</button>
-            <button class="icon-btn ${!isOwner() ? "is-hidden" : ""}" data-action="edit" data-index="${index}" title="تعديل">ت</button>
-            <button class="icon-btn danger ${!isOwner() ? "is-hidden" : ""}" data-action="delete" data-index="${index}" title="حذف">×</button>
+            <button class="icon-btn ${!isAdmin() ? "is-hidden" : ""}" data-action="edit" data-index="${index}" title="تعديل">ت</button>
+            <button class="icon-btn danger ${!isAdmin() ? "is-hidden" : ""}" data-action="delete" data-index="${index}" title="حذف">×</button>
           </td>
         </tr>
       `;
@@ -584,10 +674,12 @@ function renderProductsPage() {
 
 function renderReportsPage() {
   if (!elements.logsBody) return;
+
   const searchValue = elements.reportSearch?.value.trim().toLowerCase() || "";
   const typeValue = elements.reportType?.value || "";
   const dateFrom = elements.reportDateFrom?.value || "";
   const dateTo = elements.reportDateTo?.value || "";
+
   const filteredLogs = logs.filter((log) => {
     const matchesName = log.product.toLowerCase().includes(searchValue);
     const matchesType = !typeValue || log.type === typeValue;
@@ -641,6 +733,7 @@ function buildExcelXml() {
           ${createCell(product.sell, "Number")}
           ${createCell("", "Number", `=E${rowNumber}-D${rowNumber}`)}
           ${createCell("", "Number", `=(E${rowNumber}-D${rowNumber})*C${rowNumber}`)}
+          ${createCell(product.addedBy)}
         </Row>
       `;
     })
@@ -681,6 +774,7 @@ function buildExcelXml() {
           <Cell><Data ss:Type="String">سعر البيع</Data></Cell>
           <Cell><Data ss:Type="String">الربح للوحدة</Data></Cell>
           <Cell><Data ss:Type="String">إجمالي الربح</Data></Cell>
+          <Cell><Data ss:Type="String">أضيف بواسطة</Data></Cell>
         </Row>
         ${productRows}
       </Table>
@@ -717,10 +811,11 @@ function buildExcelXml() {
 }
 
 function exportExcel() {
-  if (!isOwner()) {
-    alert("تصدير التقرير متاح لصاحب العمل فقط.");
+  if (!isAdmin()) {
+    showToast("تصدير التقرير متاح للمدير فقط.", "error");
     return;
   }
+
   const xml = buildExcelXml();
   const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
   const url = URL.createObjectURL(blob);
@@ -731,16 +826,16 @@ function exportExcel() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+  showToast("تم تصدير ملف Excel.", "success");
 }
 
 async function installApp() {
   if (!deferredInstallPrompt) return;
+
   deferredInstallPrompt.prompt();
   await deferredInstallPrompt.userChoice;
   deferredInstallPrompt = null;
-  if (elements.installBtn) {
-    elements.installBtn.classList.add("is-hidden");
-  }
+  elements.installBtn?.classList.add("is-hidden");
 }
 
 function printPage() {
@@ -748,10 +843,7 @@ function printPage() {
 }
 
 function renderPage() {
-  if (!currentUser) {
-    updateAccessUI();
-    return;
-  }
+  if (!currentUser && !isLoginPage()) return;
 
   activateNav();
   updateAccessUI();
@@ -769,6 +861,7 @@ function renderPage() {
 function handleProductsTableClick(event) {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
+
   const index = Number(button.dataset.index);
   const action = button.dataset.action;
 
@@ -796,7 +889,10 @@ function registerEvents() {
   elements.showProfitBtn?.addEventListener("click", showProfitInfo);
   elements.hideProfitBtn?.addEventListener("click", hideProfitInfo);
   elements.addProductBtn?.addEventListener("click", addProduct);
-  elements.floatingAdd?.addEventListener("click", addProduct);
+  elements.floatingAdd?.addEventListener("click", () => {
+    elements.name?.focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
   elements.search?.addEventListener("input", renderProductsPage);
   elements.reportSearch?.addEventListener("input", renderReportsPage);
   elements.reportType?.addEventListener("change", renderReportsPage);
@@ -807,11 +903,13 @@ function registerEvents() {
   elements.cancelEditBtn?.addEventListener("click", closeEditModal);
   elements.confirmActionBtn?.addEventListener("click", confirmDelete);
   elements.cancelConfirmBtn?.addEventListener("click", closeConfirmModal);
+
   elements.editModal?.addEventListener("click", (event) => {
     if (event.target === elements.editModal) {
       closeEditModal();
     }
   });
+
   elements.confirmModal?.addEventListener("click", (event) => {
     if (event.target === elements.confirmModal) {
       closeConfirmModal();
@@ -820,13 +918,17 @@ function registerEvents() {
 
   [elements.loginUsername, elements.loginPassword].forEach((input) => {
     input?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") login();
+      if (event.key === "Enter") {
+        login();
+      }
     });
   });
 
   [elements.name, elements.qty, elements.buy, elements.sell].forEach((input) => {
     input?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") addProduct();
+      if (event.key === "Enter") {
+        addProduct();
+      }
     });
   });
 
@@ -849,5 +951,8 @@ function registerEvents() {
 }
 
 registerEvents();
-updateAccessUI();
-renderPage();
+
+if (enforceAuthorization()) {
+  updateSessionUI();
+  renderPage();
+}

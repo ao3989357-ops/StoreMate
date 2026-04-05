@@ -1,6 +1,7 @@
-const CACHE_NAME = "inventory-pwa-v2";
+const CACHE_NAME = "inventory-pwa-v3";
 const APP_ASSETS = [
   "./",
+  "login.html",
   "index.html",
   "products.html",
   "reports.html",
@@ -48,7 +49,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
           return networkResponse;
         })
-        .catch(() => caches.match("index.html"));
+        .catch(() => caches.match("login.html"));
     })
   );
 });
