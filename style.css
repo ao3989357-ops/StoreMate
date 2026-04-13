@@ -577,9 +577,13 @@ tbody tr:hover {
 }
 
 @media (max-width: 720px) {
+  body {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  }
+
   .app-shell {
-    width: min(100% - 18px, 1180px);
-    padding-bottom: 90px;
+    width: min(100% - 16px, 1180px);
+    padding: 10px 0 20px;
   }
 
   .topbar,
@@ -587,8 +591,8 @@ tbody tr:hover {
   .panel,
   .auth-card,
   .login-card {
-    padding: 20px;
-    border-radius: 22px;
+    padding: 18px;
+    border-radius: 20px;
   }
 
   .topbar,
@@ -596,21 +600,119 @@ tbody tr:hover {
   .panel__header--inline {
     flex-direction: column;
     align-items: stretch;
+    gap: 16px;
+  }
+
+  .topbar__actions,
+  .hero__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .topbar__actions button,
+  .hero__actions button,
+  .hero__actions label {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 14px 10px;
+    font-size: 13px;
+  }
+
+  .session-badge {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+
+  .main-nav {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .main-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .main-nav a {
+    white-space: nowrap;
+    flex: 0 0 auto;
   }
 
   .search-input {
     max-width: none;
+    width: 100%;
   }
 
+  table,
+  thead,
+  tbody,
   th,
+  td,
+  tr {
+    display: block;
+    width: 100%;
+  }
+
+  thead tr {
+    display: none;
+  }
+
+  tr {
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 8px 0;
+    background: var(--surface-strong);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+
   td {
-    font-size: 14px;
-    padding: 12px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    border-bottom: 1px dashed var(--border);
+    padding: 12px 14px;
+    font-size: 14.5px;
+  }
+
+  td:last-child {
+    border-bottom: none;
+    padding-bottom: 8px;
+  }
+
+  td::before {
+    content: attr(data-label);
+    font-weight: 800;
+    color: var(--muted);
+    font-size: 13px;
+    margin-left: 16px;
+  }
+
+  .actions-cell {
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 14px;
+  }
+
+  .icon-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 16px;
   }
 
   .floating {
-    left: 18px;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    left: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    width: 56px;
+    height: 56px;
+    font-size: 30px;
   }
 
   .toast-stack {
@@ -620,6 +722,7 @@ tbody tr:hover {
 
   .toast {
     max-width: none;
+    text-align: center;
   }
 
   .modal-actions {

@@ -47,6 +47,9 @@
         </div>
         <div class="hero__actions">
           <button type="button" class="ghost-btn" id="exportBtn">تصدير Excel</button>
+          <button type="button" class="ghost-btn" id="exportDataBtn">📤 تصدير البيانات</button>
+          <label for="importDataFile" class="ghost-btn" id="importDataLabel" style="cursor: pointer;">📥 استيراد البيانات</label>
+          <input type="file" id="importDataFile" style="display: none;" accept="application/json">
           <button type="button" class="ghost-btn" id="printBtn">طباعة</button>
           <button type="button" class="ghost-btn" id="showBuyBtn">عرض سعر الشراء</button>
           <button type="button" class="ghost-btn" id="hideBuyBtn">إخفاء سعر الشراء</button>
@@ -66,6 +69,19 @@
             <label>
               <span>اسم المنتج</span>
               <input id="name" type="text" placeholder="مثال: سماعة بلوتوث">
+            </label>
+            <label>
+              <span>الوحدة</span>
+              <select id="unit">
+                <option value="kg">كيلو</option>
+                <option value="g">جرام</option>
+                <option value="piece">قطعة</option>
+                <option value="box" selected>كرتونة</option>
+              </select>
+            </label>
+            <label id="boxSizeContainer">
+              <span>القطع بالكرتونة</span>
+              <input id="boxSize" type="number" min="0" placeholder="0">
             </label>
             <label>
               <span>الكمية</span>
@@ -119,6 +135,19 @@
         <label>
           <span>اسم المنتج</span>
           <input id="modalName" type="text">
+        </label>
+        <label>
+          <span>الوحدة</span>
+          <select id="modalUnit">
+            <option value="kg">كيلو</option>
+            <option value="g">جرام</option>
+            <option value="piece">قطعة</option>
+            <option value="box" selected>كرتونة</option>
+          </select>
+        </label>
+        <label id="modalBoxSizeContainer">
+          <span>القطع بالكرتونة</span>
+          <input id="modalBoxSize" type="number" min="0">
         </label>
         <label>
           <span>الكمية</span>

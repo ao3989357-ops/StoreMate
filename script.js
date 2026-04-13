@@ -30,6 +30,9 @@ const elements = {
   sessionRole: document.getElementById("sessionRole"),
   installBtn: document.getElementById("installBtn"),
   exportBtn: document.getElementById("exportBtn"),
+  exportDataBtn: document.getElementById("exportDataBtn"),
+  importDataFile: document.getElementById("importDataFile"),
+  importDataLabel: document.getElementById("importDataLabel"),
   printBtn: document.getElementById("printBtn"),
   darkModeBtn: document.getElementById("darkModeBtn"),
   showBuyBtn: document.getElementById("showBuyBtn"),
@@ -45,6 +48,9 @@ const elements = {
   formPanel: document.getElementById("formPanel"),
   name: document.getElementById("name"),
   qty: document.getElementById("qty"),
+  unit: document.getElementById("unit"),
+  boxSizeContainer: document.getElementById("boxSizeContainer"),
+  boxSize: document.getElementById("boxSize"),
   buy: document.getElementById("buy"),
   sell: document.getElementById("sellPrice"),
   addProductBtn: document.getElementById("addProductBtn"),
@@ -64,6 +70,9 @@ const elements = {
   confirmMessage: document.getElementById("confirmMessage"),
   modalName: document.getElementById("modalName"),
   modalQty: document.getElementById("modalQty"),
+  modalUnit: document.getElementById("modalUnit"),
+  modalBoxSizeContainer: document.getElementById("modalBoxSizeContainer"),
+  modalBoxSize: document.getElementById("modalBoxSize"),
   modalBuy: document.getElementById("modalBuy"),
   modalSell: document.getElementById("modalSell"),
   saveEditBtn: document.getElementById("saveEditBtn"),
@@ -84,6 +93,8 @@ let pendingDeleteIndex = null;
 products = products.map((product) => ({
   ...product,
   qty: Number(product.qty) || 0,
+  unit: product.unit || "piece",
+  boxSize: Number(product.boxSize) || 0,
   buy: Number(product.buy) || 0,
   sell: Number(product.sell) || 0,
   soldCount: Number(product.soldCount) || 0,
@@ -260,6 +271,12 @@ function updateAccessUI() {
   if (elements.exportBtn) {
     elements.exportBtn.style.display = isAdmin() ? "inline-flex" : "none";
   }
+  if (elements.exportDataBtn) {
+    elements.exportDataBtn.style.display = isAdmin() ? "inline-flex" : "none";
+  }
+  if (elements.importDataLabel) {
+    elements.importDataLabel.style.display = isAdmin() ? "inline-flex" : "none";
+  }
   if (elements.showBuyBtn) {
     elements.showBuyBtn.style.display = isAdmin() && !showBuy ? "inline-flex" : "none";
   }
@@ -325,30 +342,35 @@ async function login() {
     elements.loginBtn.textContent = "جارٍ التحقق...";
   }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ username, password })
-    });
+  // Local authentication based on the details in login.html
+  setTimeout(() => {
+    let success = false;
+    let role = null;
 
-    const data = await response.json().catch(() => ({}));
+    if (username === "admin" && password === "1234") {
+      success = true;
+      role = "owner";
+    } else if (username === "user1" && password === "1111") {
+      success = true;
+      role = "worker";
+    }
 
-    if (!response.ok || !data.success) {
-      const message = data.message || "بيانات غير صحيحة.";
+    if (!success) {
       if (elements.loginError) {
-        elements.loginError.textContent = message;
+        elements.loginError.textContent = "بيانات غير صحيحة.";
       }
-      showToast(message, "error");
+      showToast("بيانات غير صحيحة.", "error");
+      if (elements.loginBtn) {
+        elements.loginBtn.disabled = false;
+        elements.loginBtn.textContent = "دخول";
+      }
       return;
     }
 
     currentUser = normalizeStoredUser({
-      username: data.username,
-      role: data.role,
-      label: ROLE_LABELS[data.role]
+      username: username,
+      role: role,
+      label: ROLE_LABELS[role === "owner" ? "admin" : "employee"]
     });
 
     saveSession();
@@ -358,17 +380,7 @@ async function login() {
 
     showToast(`مرحبًا ${currentUser.username}`, "success");
     redirectTo(getDefaultPageForRole(currentUser.role));
-  } catch (error) {
-    if (elements.loginError) {
-      elements.loginError.textContent = "تعذر الاتصال بالسيرفر. تأكد من تشغيل الـ backend.";
-    }
-    showToast("تعذر الاتصال بالسيرفر. تأكد من تشغيل الـ backend.", "error");
-  } finally {
-    if (elements.loginBtn) {
-      elements.loginBtn.disabled = false;
-      elements.loginBtn.textContent = "دخول";
-    }
-  }
+  }, 400); // 400ms delay to simulate loading
 }
 
 function logout() {
@@ -381,10 +393,28 @@ function logout() {
   redirectTo("login.html");
 }
 
+function toggleBoxInput() {
+  const unitVal = elements.unit?.value;
+  if (elements.boxSizeContainer) {
+    elements.boxSizeContainer.style.display = (unitVal === "piece" || unitVal === "box") ? "flex" : "none";
+  }
+  if (unitVal !== "piece" && unitVal !== "box" && elements.boxSize) elements.boxSize.value = "";
+}
+
+function toggleModalBoxInput() {
+  const unitVal = elements.modalUnit?.value;
+  if (elements.modalBoxSizeContainer) {
+    elements.modalBoxSizeContainer.style.display = (unitVal === "piece" || unitVal === "box") ? "flex" : "none";
+  }
+  if (unitVal !== "piece" && unitVal !== "box" && elements.modalBoxSize) elements.modalBoxSize.value = "";
+}
+
 function getFormValues() {
   return {
     name: elements.name?.value.trim() || "",
     qty: Number(elements.qty?.value),
+    unit: elements.unit?.value || "box",
+    boxSize: (elements.unit?.value === "piece" || elements.unit?.value === "box") ? Number(elements.boxSize?.value) : 0,
     buy: Number(elements.buy?.value),
     sell: Number(elements.sell?.value)
   };
@@ -393,8 +423,11 @@ function getFormValues() {
 function clearForm() {
   if (elements.name) elements.name.value = "";
   if (elements.qty) elements.qty.value = "";
+  if (elements.unit) elements.unit.value = "box";
+  if (elements.boxSize) elements.boxSize.value = "";
   if (elements.buy) elements.buy.value = "";
   if (elements.sell) elements.sell.value = "";
+  toggleBoxInput();
   elements.name?.focus();
 }
 
@@ -410,7 +443,7 @@ function addProduct() {
     return;
   }
 
-  if (product.qty < 0 || product.buy < 0 || product.sell < 0) {
+  if (product.qty < 0 || product.buy < 0 || product.sell < 0 || product.boxSize < 0) {
     showToast("لا يمكن إدخال أرقام سالبة.", "error");
     return;
   }
@@ -508,8 +541,11 @@ function editProduct(index) {
   editingIndex = index;
   elements.modalName.value = product.name;
   elements.modalQty.value = product.qty;
+  if (elements.modalUnit) elements.modalUnit.value = product.unit || "box";
+  if (elements.modalBoxSize) elements.modalBoxSize.value = product.boxSize || 0;
   elements.modalBuy.value = product.buy;
   elements.modalSell.value = product.sell;
+  setTimeout(toggleModalBoxInput, 0);
   elements.editModal.classList.remove("is-hidden");
 }
 
@@ -528,6 +564,8 @@ function saveEditFromModal() {
     ...current,
     name: elements.modalName.value.trim(),
     qty: Number(elements.modalQty.value),
+    unit: elements.modalUnit?.value || "box",
+    boxSize: (elements.modalUnit?.value === "piece" || elements.modalUnit?.value === "box") ? Number(elements.modalBoxSize?.value || 0) : 0,
     buy: Number(elements.modalBuy.value),
     sell: Number(elements.modalSell.value)
   };
@@ -537,7 +575,7 @@ function saveEditFromModal() {
     return;
   }
 
-  if (updated.qty < 0 || updated.buy < 0 || updated.sell < 0) {
+  if (updated.qty < 0 || updated.buy < 0 || updated.sell < 0 || updated.boxSize < 0) {
     showToast("لا يمكن إدخال أرقام سالبة.", "error");
     return;
   }
@@ -647,18 +685,28 @@ function renderProductsPage() {
     .map((product) => {
       const index = products.indexOf(product);
       const stockLabel = product.qty === 0 ? "نفد" : product.qty <= 3 ? "منخفض" : "متوفر";
+      const unitLabel = product.unit === "kg" ? "كجم" : product.unit === "g" ? "جم" : product.unit === "box" ? "كرتونة" : "قطعة";
+      
+      let qtyText = `${product.qty} ${unitLabel}`;
+      if (product.unit === "piece" && product.boxSize > 0) {
+        let boxes = Math.floor(product.qty / product.boxSize);
+        qtyText += ` (${boxes} كرتونة)`;
+      } else if (product.unit === "box" && product.boxSize > 0) {
+        let pieces = product.qty * product.boxSize;
+        qtyText += ` (${pieces} قطعة الإجمالي)`;
+      }
 
       return `
         <tr>
-          <td>${index + 1}</td>
-          <td>${product.name}</td>
-          <td>${product.qty}</td>
-          ${isAdmin() && showBuy ? `<td>${formatMoney(product.buy)}</td>` : ""}
-          ${isAdmin() ? `<td>${formatMoney(product.sell)}</td>` : ""}
-          ${isAdmin() && showProfit ? `<td>${formatMoney(product.realizedProfit)}</td>` : ""}
-          <td>${product.addedBy}</td>
-          <td><span class="badge">${stockLabel}</span></td>
-          <td class="actions-cell">
+          <td data-label="ID">${index + 1}</td>
+          <td data-label="المنتج">${product.name}</td>
+          <td data-label="الكمية">${qtyText}</td>
+          ${isAdmin() && showBuy ? `<td data-label="سعر الشراء">${formatMoney(product.buy)}</td>` : ""}
+          ${isAdmin() ? `<td data-label="سعر البيع">${formatMoney(product.sell)}</td>` : ""}
+          ${isAdmin() && showProfit ? `<td data-label="الربح">${formatMoney(product.realizedProfit)}</td>` : ""}
+          <td data-label="أضيف بواسطة">${product.addedBy}</td>
+          <td data-label="الحالة"><span class="badge">${stockLabel}</span></td>
+          <td class="actions-cell" data-label="إجراءات">
             <button class="icon-btn" data-action="addQty" data-index="${index}" title="وارد">+</button>
             <button class="icon-btn" data-action="sell" data-index="${index}" title="صادر">-</button>
             <button class="icon-btn ${!isAdmin() ? "is-hidden" : ""}" data-action="edit" data-index="${index}" title="تعديل">ت</button>
@@ -704,11 +752,11 @@ function renderReportsPage() {
     .map(
       (log) => `
         <tr>
-          <td>${log.type}</td>
-          <td>${log.product}</td>
-          <td>${log.quantity}</td>
-          <td>${log.date}</td>
-          <td>${log.user}</td>
+          <td data-label="النوع">${log.type}</td>
+          <td data-label="المنتج">${log.product}</td>
+          <td data-label="الكمية">${log.quantity}</td>
+          <td data-label="التاريخ">${log.date}</td>
+          <td data-label="المستخدم">${log.user}</td>
         </tr>
       `
     )
@@ -810,6 +858,78 @@ function buildExcelXml() {
   </Workbook>`;
 }
 
+function exportDataJSON() {
+  if (!isAdmin()) {
+    showToast("تصدير البيانات متاح للمدير فقط.", "error");
+    return;
+  }
+
+  try {
+    const data = {
+      products: JSON.parse(localStorage.getItem(STORAGE_KEYS.products) || "[]"),
+      logs: JSON.parse(localStorage.getItem(STORAGE_KEYS.logs) || "[]")
+    };
+
+    const blob = new Blob([JSON.stringify(data)], {
+      type: "application/json"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = "inventory-backup.json";
+    
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+
+    showToast("تم تصدير نسخة احتياطية للبيانات", "success");
+  } catch (error) {
+    console.error("Export error:", error);
+    showToast("حدث خطأ أثناء التصدير", "error");
+  }
+}
+
+function importDataJSON(event) {
+  if (!isAdmin()) {
+    showToast("استيراد البيانات متاح للمدير فقط.", "error");
+    return;
+  }
+
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      if (data.products) {
+        localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(data.products));
+      }
+
+      if (data.logs) {
+        localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(data.logs));
+      }
+
+      showToast("تم استيراد البيانات بنجاح", "success");
+      setTimeout(() => location.reload(), 1000);
+    } catch (error) {
+      showToast("ملف غير صالح", "error");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  reader.readAsText(file);
+}
+
 function exportExcel() {
   if (!isAdmin()) {
     showToast("تصدير التقرير متاح للمدير فقط.", "error");
@@ -876,6 +996,8 @@ function registerEvents() {
   elements.logoutBtn?.addEventListener("click", logout);
   elements.installBtn?.addEventListener("click", installApp);
   elements.exportBtn?.addEventListener("click", exportExcel);
+  elements.exportDataBtn?.addEventListener("click", exportDataJSON);
+  elements.importDataFile?.addEventListener("change", importDataJSON);
   elements.printBtn?.addEventListener("click", printPage);
   elements.darkModeBtn?.addEventListener("click", () => {
     document.body.classList.toggle("dark");
@@ -903,6 +1025,13 @@ function registerEvents() {
   elements.cancelEditBtn?.addEventListener("click", closeEditModal);
   elements.confirmActionBtn?.addEventListener("click", confirmDelete);
   elements.cancelConfirmBtn?.addEventListener("click", closeConfirmModal);
+
+  elements.unit?.addEventListener("change", toggleBoxInput);
+  elements.modalUnit?.addEventListener("change", toggleModalBoxInput);
+  setTimeout(() => {
+    toggleBoxInput();
+    toggleModalBoxInput();
+  }, 0);
 
   elements.editModal?.addEventListener("click", (event) => {
     if (event.target === elements.editModal) {
