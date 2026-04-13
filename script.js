@@ -109,7 +109,9 @@ logs = logs.map((log) => ({
   role: log.role || "admin"
 }));
 
-if (currentUser) {
+// ====== AUTO LOGIN - NO PASSWORD REQUIRED ======
+if (!currentUser) {
+  currentUser = { username: "admin", role: "admin", label: "Admin" };
   saveSession();
 }
 
@@ -220,23 +222,11 @@ function redirectTo(url) {
 }
 
 function enforceAuthorization() {
-  const current = getCurrentPageKey();
-
-  if (!currentUser && current !== "login") {
-    redirectTo("login.html");
-    return false;
+  // No login required - always allow access as admin
+  if (!currentUser) {
+    currentUser = { username: "admin", role: "admin", label: "Admin" };
+    saveSession();
   }
-
-  if (currentUser && current === "login") {
-    redirectTo(getDefaultPageForRole(currentUser.role));
-    return false;
-  }
-
-  if (currentUser && currentUser.role === "employee" && current === "dashboard") {
-    redirectTo("products.html");
-    return false;
-  }
-
   return true;
 }
 
@@ -310,15 +300,15 @@ function updateAccessUI() {
 }
 
 function addLog(type, productName, quantity) {
-  if (!currentUser) return;
+  const user = currentUser || { username: "admin" };
 
   logs.unshift({
     type,
     product: productName,
     quantity,
     date: formatDate(),
-    user: currentUser.username,
-    role: currentUser.role
+    user: user.username,
+    role: user.role
   });
 
   logs = logs.slice(0, 500);
